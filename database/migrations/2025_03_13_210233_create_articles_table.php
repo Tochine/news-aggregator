@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('source_code')->unique();
             $table->string('author')->nullable();
             $table->text('description')->nullable();
-            $table->text('content');
+            $table->longText('content');
             $table->string('url');
             $table->string('source');
             $table->string('category')->nullable();
