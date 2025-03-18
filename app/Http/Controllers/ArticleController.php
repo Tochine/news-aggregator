@@ -18,7 +18,11 @@ class ArticleController extends Controller
         if (isset($response['error'])) {
             return response()->json(['error' => $response['error']], 400);
         }
-        return $response->json();
+        if ($response->successful()) {
+            return $response->json();
+        } else {
+            return $response->body();
+        }
 
     }
 }

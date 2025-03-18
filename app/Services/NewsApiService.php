@@ -11,7 +11,7 @@ class NewsApiService {
     public function fetchNewsApiArticle($request) {
         try {
             $params = $request->query();
-            $response = Http::get(config('services.newsapi.base_url').'/everything', [
+            $articles = Http::get(config('services.newsapi.base_url').'/everything', [
                 'apiKey' => config('services.newsapi.key'),
                 'q' => $params['q'],
                 'pageSize' => $pageSize ?? 10,
@@ -21,14 +21,31 @@ class NewsApiService {
                 'to' => $params['to'] ?? null,
             ]);
             
-            if($response->failed()) {
+            if($articles->failed()) {
                 Log::error('NewsAPI request failed', [
-                    'status' =>  $response->status(),
-                    'response' => $response->json(),
+                    'status' =>  $articles->status(),
+                    'response' => $articles->json(),
                 ]);
-                return $response->json();
+                return $articles->json();
             }
-            return $response;
+            if ($articles->json(['status']) === 'ok') {
+                foreach ($articles->json(['articles']) as $article) {
+                    Article::updateOrCreate(
+                        ['url' => $article['url']],
+                        [
+                            'title' => $article['title'],
+                            'author' => $article['author'],
+                            'description' => $article['description'],
+                            'content' => $article['content'],
+                            'source' => 'NewsAPI',
+                            'category' => $params['q'] ?? 'general',
+                            'image_url' => $article['urlToImage'] ?? null,
+                            'published_at' => date('Y-m-d H:i:s', strtotime($article['publishedAt'])),
+                        ]
+                        );
+                }
+            }
+            return $articles;
         } catch (\Exception $e) {
             Log::error('Error fetching article from NewsAPI', [
                 'error' => $e->getMessage()
