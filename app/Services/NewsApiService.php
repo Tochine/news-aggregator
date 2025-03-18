@@ -8,20 +8,12 @@ use Illuminate\Support\Facades\Log;
 
 
 class NewsApiService {
-    public function fetchNewsApiArticle($request) {
+    public function fetchAndStoreNewsApiArticle($request) {
         try {
             $params = $request->query();
-            $articles = Http::get(config('services.newsapi.base_url').'/everything', [
-                'apiKey' => config('services.newsapi.key'),
-                'q' => $params['q'],
-                'pageSize' => $pageSize ?? 10,
-                // 'country' => $params['country'] ?? null,
-                'language' => $params['language'] ?? 'en',
-                'from' => $params['from'] ?? null,
-                'to' => $params['to'] ?? null,
-            ]);
+            $articles = $this->fetchNewsApi($params);
             
-            if($articles->failed()) {
+            if ($articles['status'] === 'error') {
                 Log::error('NewsAPI request failed', [
                     'status' =>  $articles->status(),
                     'response' => $articles->json(),
@@ -44,6 +36,8 @@ class NewsApiService {
                         ]
                         );
                 }
+
+                Log::info('Articles saved successfully');
             }
             return $articles;
         } catch (\Exception $e) {
@@ -52,5 +46,18 @@ class NewsApiService {
             ]);
             return $e->getMessage();
         }
+    }
+
+    public function fetchNewsApi($params) {
+        $articles = Http::get(config('services.newsapi.base_url').'/everything', [
+            'apiKey' => config('services.newsapi.key'),
+            'q' => $params['q'],
+            'page' => $params['page'] ?? 10,
+            'language' => $params['language'] ?? 'en',
+            'from' => $params['from'] ?? null,
+            'to' => $params['to'] ?? null,
+        ]);
+
+        return $articles;
     }
 }
